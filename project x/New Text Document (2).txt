@@ -1,0 +1,71 @@
+const shuffle = require('shuffle-array');
+const https = require('https');
+const httpx = require('httpx');
+const gratient = require('gratient');
+
+class SSLFactory {
+  constructor() {
+    this.ciphers = [
+      "ECDH+AESGCM",
+      "DH+AESGCM",
+      "ECDH+AES256",
+      "DH+AES256",
+      "ECDH+AES128",
+      "DH+AES",
+      "ECDH+HIGH",
+      "DH+HIGH",
+      "ECDH+3DES",
+      "DH+3DES",
+      "RSA+AESGCM",
+      "RSA+AES",
+      "RSA+HIGH",
+      "RSA+3DES"
+    ];
+  }
+
+  createSSLContext() {
+    shuffle(this.ciphers);
+    const context = https.createDefaultSecureContext({
+      ciphers: `${this.ciphers.join(':')}:!aNULL:!eNULL:!MD5`
+    });
+    return context;
+  }
+}
+
+function redeemGiftVoucher(url, phoneNumber) {
+  const sess = new httpx.Client({
+    verify: new SSLFactory().createSSLContext(),
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.67"
+    }
+  });
+
+  const trueWalletGiftVoucherCode = url.split("https://gift.truemoney.com/campaign/?v=")[1];
+  if (trueWalletGiftVoucherCode) {
+    sess.post(`https://gift.truemoney.com/campaign/vouchers/${trueWalletGiftVoucherCode}/redeem`, {
+      json: {
+        mobile: phoneNumber,
+        voucher_hash: trueWalletGiftVoucherCode
+      }
+    }).then((d) => {
+      if (d.status === 200) {
+        console.log(gratient.green("Redeem"));
+      } else {
+        console.log(gratient.red("Don't Redeem"));
+      }
+    }).catch((error) => {
+      console.log(gratient.red(error));
+    });
+  } else {
+    console.log(gratient.red("Not Found"));
+  }
+}
+
+function main() {
+  const phoneNumber = "0646055773";
+  const readlineSync = require('readline-sync');
+  const url = readlineSync.question("Url: ");
+  redeemGiftVoucher(url, phoneNumber);
+}
+
+main();
